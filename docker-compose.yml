@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: crm_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5444:5432"
+    volumes:
+      - postgres_volume:/var/lib/postgresql/data
+
+  spring:
+    image: eclipse-temurin:21
+    container_name: spring_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    volumes:
+      - ./project/build/libs/SHIFTLab-0.0.1-SNAPSHOT.jar:/app/app.jar
+    command: java -jar /app/app.jar
+
+volumes:
+  postgres_volume:

@@ -2,10 +2,12 @@ package com.shiftlab.crm.dto.Seller;
 
 import com.shiftlab.crm.model.Seller;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
+@NoArgsConstructor
 public class SellerShortDTO {
     private Long id;
     private String name;

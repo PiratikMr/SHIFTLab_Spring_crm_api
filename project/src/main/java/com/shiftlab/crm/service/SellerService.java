@@ -5,13 +5,12 @@ import com.shiftlab.crm.dto.Seller.SellerShortDTO;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.repository.SellerRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class SellerService {
@@ -28,14 +27,9 @@ public class SellerService {
         return new SellerShortDTO(sellerRepository.save(seller));
     }
 
-    public List<SellerShortDTO> getSellers(int page, int perPage) {
-        List<Seller> sellerList = sellerRepository.findAll(PageRequest.of(page, perPage)).getContent();
-        return sellerList.stream().map(SellerShortDTO::new).collect(Collectors.toList());
-    }
-
-    private Seller getPureSellerById(Long id) {
-        return sellerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Продавец с ID " + id + " не найден"));
+    public Page<SellerShortDTO> getSellers(int page, int perPage) {
+        Page<Seller> sellerPage = sellerRepository.findAll(PageRequest.of(page, perPage));
+        return sellerPage.map(SellerShortDTO::new);
     }
 
     public SellerDTO getSellerById(Long id) {
@@ -43,11 +37,11 @@ public class SellerService {
     }
 
     @Transactional
-    public SellerDTO updateSeller(Long id, SellerDTO sellerDetails) {
+    public SellerDTO updateSeller(Long id, Seller sellerDetails) {
         Seller seller = getPureSellerById(id);
 
-        seller.setName(sellerDetails.getSellerShortDTO().getName());
-        seller.setContactInfo(sellerDetails.getSellerShortDTO().getContactInfo());
+        seller.setName(sellerDetails.getName());
+        seller.setContactInfo(sellerDetails.getContactInfo());
 
         return new SellerDTO(sellerRepository.save(seller));
     }
@@ -56,5 +50,13 @@ public class SellerService {
     public void deleteSeller(Long id) {
         Seller seller = getPureSellerById(id);
         sellerRepository.delete(seller);
+    }
+
+
+
+
+    private Seller getPureSellerById(Long id) {
+        return sellerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Продавец с ID " + id + " не найден"));
     }
 }

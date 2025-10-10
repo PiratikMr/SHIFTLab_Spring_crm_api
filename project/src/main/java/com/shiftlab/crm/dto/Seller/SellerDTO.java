@@ -1,26 +1,26 @@
 package com.shiftlab.crm.dto.Seller;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
 import com.shiftlab.crm.model.Seller;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class SellerDTO {
-    @JsonUnwrapped
-    private SellerShortDTO sellerShortDTO;
+@NoArgsConstructor
+public class SellerDTO extends SellerShortDTO {
     private List<TransactionShortDTO> transactions;
 
     public SellerDTO(Seller seller) {
-        this.sellerShortDTO = new SellerShortDTO(seller);
-        if (sellerShortDTO.getTransactionsCount() != 0) {
+        super(seller);
+        if (getTransactionsCount() != 0) {
             transactions = seller.getTransactions().stream()
-                    .map(t -> new TransactionShortDTO(t))
+                    .map(TransactionShortDTO::new)
                     .collect(Collectors.toList());
-
         }
     }
 }

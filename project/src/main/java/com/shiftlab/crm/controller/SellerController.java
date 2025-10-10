@@ -4,11 +4,11 @@ import com.shiftlab.crm.dto.Seller.SellerDTO;
 import com.shiftlab.crm.dto.Seller.SellerShortDTO;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.service.SellerService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/sellers")
@@ -22,11 +22,11 @@ public class SellerController {
 
     // Список всех продавцов
     @GetMapping
-    public ResponseEntity<List<SellerShortDTO>> getSellers(
+    public ResponseEntity<Page<SellerShortDTO>> getSellers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int perPage
     ) {
-        List<SellerShortDTO> sellers = sellerService.getSellers(page, perPage);
+        Page<SellerShortDTO> sellers = sellerService.getSellers(page, perPage);
         return ResponseEntity.ok(sellers);
     }
 
@@ -39,14 +39,14 @@ public class SellerController {
 
     // Создать нового продавца
     @PostMapping
-    public ResponseEntity<SellerShortDTO> createSeller(@RequestBody Seller seller) {
+    public ResponseEntity<SellerShortDTO> createSeller(@Valid @RequestBody Seller seller) {
         SellerShortDTO createdSeller = sellerService.createSeller(seller);
         return new ResponseEntity<>(createdSeller, HttpStatus.CREATED);
     }
 
     // Обновить инфо о продавце
     @PutMapping("/{id}")
-    public ResponseEntity<SellerDTO> updateSeller(@PathVariable Long id, @RequestBody SellerDTO sellerDetails) {
+    public ResponseEntity<SellerDTO> updateSeller(@PathVariable Long id, @Valid @RequestBody Seller sellerDetails) {
         SellerDTO updatedSeller = sellerService.updateSeller(id, sellerDetails);
         return ResponseEntity.ok(updatedSeller);
     }

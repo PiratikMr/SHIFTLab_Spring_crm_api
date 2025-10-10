@@ -7,6 +7,7 @@ import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.repository.SellerRepository;
 import com.shiftlab.crm.repository.TransactionRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,27 +38,19 @@ public class TransactionService {
         return new TransactionDTO(transactionRepository.save(transaction));
     }
 
-
-    public List<TransactionShortDTO> getTransactions(int page, int perPage) {
-        return transactionRepository.findAll(PageRequest.of(page, perPage)).stream()
-                .map(TransactionShortDTO::new).collect(Collectors.toList());
+    public Page<TransactionShortDTO> getTransactions(int page, int perPage) {
+        return transactionRepository.findAll(PageRequest.of(page, perPage))
+                .map(TransactionShortDTO::new);
     }
-
-    private Transaction getPureTransactionById(Long id) {
-        return transactionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Транзакция с ID " + id + " не найдена"));
-    }
-
-
 
     public TransactionDTO getTransactionById(Long id) {
         return new TransactionDTO(getPureTransactionById(id));
     }
 
-    public List<TransactionDTO> getTransactionsBySellerId(Long sellerId) {
+    public List<TransactionShortDTO> getTransactionsBySellerId(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Продавец с ID " + sellerId + " не найден"));
-        return transactionRepository.findBySeller(seller).stream().map(TransactionDTO::new).collect(Collectors.toList());
+        return transactionRepository.findBySeller(seller).stream().map(TransactionShortDTO::new).collect(Collectors.toList());
     }
 
     @Transactional
@@ -74,5 +67,12 @@ public class TransactionService {
     public void deleteTransaction(Long id) {
         Transaction transaction = getPureTransactionById(id);
         transactionRepository.delete(transaction);
+    }
+
+
+
+    private Transaction getPureTransactionById(Long id) {
+        return transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Транзакция с ID " + id + " не найдена"));
     }
 }

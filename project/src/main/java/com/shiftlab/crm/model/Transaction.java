@@ -1,7 +1,7 @@
 package com.shiftlab.crm.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
@@ -21,6 +21,7 @@ public class Transaction {
     @JoinColumn(name = "seller_id", nullable = false)
     private Seller seller;
 
+    @DecimalMin(value = "0", message = "Сумма транзакции не может быть отрицательной")
     @Column(nullable = false)
     private BigDecimal amount;
 

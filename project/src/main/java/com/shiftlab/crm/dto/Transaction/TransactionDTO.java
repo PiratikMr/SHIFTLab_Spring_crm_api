@@ -1,23 +1,20 @@
 package com.shiftlab.crm.dto.Transaction;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.shiftlab.crm.model.Transaction;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class TransactionDTO {
-    @JsonUnwrapped
-    private TransactionShortDTO transactionShortDTO;
+@NoArgsConstructor
+public class TransactionDTO extends TransactionShortDTO {
     private Long seller_id;
     private Transaction.PaymentType paymentType;
-    private LocalDateTime transactionDate;
 
     public TransactionDTO(Transaction transaction) {
-        this.transactionShortDTO = new TransactionShortDTO(transaction);
+        super(transaction);
         this.seller_id = transaction.getSeller().getId();
         this.paymentType = transaction.getPaymentType();
-        this.transactionDate = transaction.getTransactionDate();
     }
 }

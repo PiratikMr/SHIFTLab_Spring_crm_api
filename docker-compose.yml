@@ -19,7 +19,7 @@ services:
     depends_on:
       - db
     volumes:
-      - ./project/build/libs/SHIFTLab-0.0.1-SNAPSHOT.jar:/app/app.jar
+      - ./project/spring-crm-api.jar:/app/app.jar
     command: java -jar /app/app.jar
 
 volumes:

@@ -4,6 +4,8 @@ import com.shiftlab.crm.dto.Transaction.TransactionDTO;
 import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.service.TransactionService;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +24,11 @@ public class TransactionController {
 
     // Получить список всех транзакций
     @GetMapping
-    public ResponseEntity<List<TransactionShortDTO>> getTransactions(
+    public ResponseEntity<Page<TransactionShortDTO>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int perPage
     ) {
-        List<TransactionShortDTO> transactions = transactionService.getTransactions(page, perPage);
+        Page<TransactionShortDTO> transactions = transactionService.getTransactions(page, perPage);
         return ResponseEntity.ok(transactions);
     }
 
@@ -37,25 +39,25 @@ public class TransactionController {
         return ResponseEntity.ok(transaction);
     }
 
-    // Создать новую транзакцию. Принимаем ID продавца в URL.
+    // Создать новую транзакцию
     @PostMapping("/seller/{sellerId}")
     public ResponseEntity<TransactionDTO> createTransaction(
             @PathVariable Long sellerId,
-            @RequestBody Transaction transaction) {
+            @Valid @RequestBody Transaction transaction) {
         TransactionDTO createdTransaction = transactionService.createTransaction(sellerId, transaction);
         return new ResponseEntity<>(createdTransaction, HttpStatus.CREATED);
     }
 
     // Получить все транзакции продавца
     @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<TransactionDTO>> getTransactionsBySellerId(@PathVariable Long sellerId) {
-        List<TransactionDTO> transactions = transactionService.getTransactionsBySellerId(sellerId);
+    public ResponseEntity<List<TransactionShortDTO>> getTransactionsBySellerId(@PathVariable Long sellerId) {
+        List<TransactionShortDTO> transactions = transactionService.getTransactionsBySellerId(sellerId);
         return ResponseEntity.ok(transactions);
     }
 
-    // Обновить транзакцию (редко используется)
+    // Обновить транзакцию
     @PutMapping("/{id}")
-    public ResponseEntity<TransactionDTO> updateTransaction(@PathVariable Long id, @RequestBody Transaction transactionDetails) {
+    public ResponseEntity<TransactionDTO> updateTransaction(@PathVariable Long id, @Valid @RequestBody Transaction transactionDetails) {
         TransactionDTO updatedTransaction = transactionService.updateTransaction(id, transactionDetails);
         return ResponseEntity.ok(updatedTransaction);
     }

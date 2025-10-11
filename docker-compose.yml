@@ -12,15 +12,15 @@ services:
       - postgres_volume:/var/lib/postgresql/data
 
   spring:
-    image: eclipse-temurin:21
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: spring_api
     ports:
       - "8080:8080"
     depends_on:
       - db
-    volumes:
-      - ./project/spring-crm-api.jar:/app/app.jar
-    command: java -jar /app/app.jar
+    command: java -jar /project/build/libs/spring-crm-api.jar
 
 volumes:
   postgres_volume:

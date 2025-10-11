@@ -2,7 +2,6 @@ package com.shiftlab.crm.controller;
 
 import com.shiftlab.crm.dto.Seller.SellerDTO;
 import com.shiftlab.crm.dto.Seller.SellerShortDTO;
-import com.shiftlab.crm.exception.ResourceNotFoundException;
 import com.shiftlab.crm.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,10 +36,8 @@ public class AnalyticsControllerTest {
 
     @Test
     void getMostProductiveSeller_ShouldReturnSellerDTO_Success() throws Exception {
-        // Arrange
         String periodType = "MONTH";
 
-        // **МАНУАЛЬНОЕ СОЗДАНИЕ DTO**
         SellerDTO seller = new SellerDTO();
         seller.setId(1L);
         seller.setName("Top Seller");
@@ -48,11 +45,9 @@ public class AnalyticsControllerTest {
         seller.setRegistrationDate(LocalDateTime.now());
         seller.setTransactionsCount(100);
         seller.setTransactions(Collections.emptyList());
-        // ------------------------
 
         when(analyticsService.getMostProductiveSeller(periodType)).thenReturn(seller);
 
-        // Act & Assert
         mockMvc.perform(get(BASE_URL + "/most-productive-seller/{periodType}", periodType)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

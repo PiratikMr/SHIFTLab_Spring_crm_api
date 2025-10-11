@@ -3,7 +3,6 @@ package com.shiftlab.crm.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shiftlab.crm.dto.Transaction.TransactionDTO;
 import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
-import com.shiftlab.crm.exception.ResourceNotFoundException;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.service.TransactionService;
 import org.junit.jupiter.api.Test;
@@ -45,12 +44,12 @@ public class TransactionControllerTest {
     void getTransactions_ShouldReturnPagedList_Success() throws Exception {
         LocalDateTime now = LocalDateTime.now();
 
-        TransactionShortDTO dto = new TransactionShortDTO();
+        TransactionDTO dto = new TransactionDTO();
         dto.setId(1L);
         dto.setAmount(new BigDecimal("100.50"));
         dto.setTransactionDate(now);
 
-        Page<TransactionShortDTO> page = new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1);
+        Page<TransactionDTO> page = new PageImpl<>(List.of(dto), PageRequest.of(0, 10), 1);
         when(transactionService.getTransactions(0, 10)).thenReturn(page);
 
         mockMvc.perform(get(BASE_URL)
@@ -113,22 +112,36 @@ public class TransactionControllerTest {
     @Test
     void getTransactionsBySellerId_ShouldReturnList_Success() throws Exception {
         Long sellerId = 2L;
+        int page = 0;
+        int perPage = 10;
         LocalDateTime now = LocalDateTime.now();
 
-        TransactionDTO dto = new TransactionDTO();
-        dto.setId(1L);
-        dto.setAmount(new BigDecimal("250.00"));
-        dto.setTransactionDate(now);
-        dto.setSeller_id(sellerId);
-        dto.setPaymentType(Transaction.PaymentType.TRANSFER);
+        TransactionDTO shortDto = new TransactionDTO();
+        shortDto.setId(1L);
+        shortDto.setAmount(new BigDecimal("250.00"));
+        shortDto.setTransactionDate(now);
 
-        when(transactionService.getTransactionsBySellerId(sellerId)).thenReturn(List.of(dto));
+        Page<TransactionDTO> mockPage = new PageImpl<>(
+                List.of(shortDto),
+                PageRequest.of(page, perPage),
+                1L
+        );
+
+        when(transactionService.getTransactionsBySellerId(eq(sellerId), anyInt(), anyInt()))
+                .thenReturn(mockPage);
 
         mockMvc.perform(get(BASE_URL + "/seller/" + sellerId)
+                        .param("page", String.valueOf(page))
+                        .param("perPage", String.valueOf(perPage))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].amount").value(250.00))
-                .andExpect(jsonPath("$.length()").value(1));
+
+                .andExpect(jsonPath("$.content[0].amount").value(250.00))
+
+                .andExpect(jsonPath("$.content.length()").value(1))
+
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.page").value(page));
     }
 
 

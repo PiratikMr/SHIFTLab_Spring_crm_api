@@ -1,7 +1,7 @@
 package com.shiftlab.crm.controller;
 
+import com.shiftlab.crm.dto.CustomPage;
 import com.shiftlab.crm.dto.Transaction.TransactionDTO;
-import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.service.TransactionService;
 import jakarta.validation.Valid;
@@ -9,8 +9,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -24,12 +22,12 @@ public class TransactionController {
 
     // Получить список всех транзакций
     @GetMapping
-    public ResponseEntity<Page<TransactionShortDTO>> getTransactions(
+    public ResponseEntity<CustomPage<TransactionDTO>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int perPage
     ) {
-        Page<TransactionShortDTO> transactions = transactionService.getTransactions(page, perPage);
-        return ResponseEntity.ok(transactions);
+        Page<TransactionDTO> transactions = transactionService.getTransactions(page, perPage);
+        return ResponseEntity.ok(new CustomPage<>(transactions));
     }
 
     // Получить информацию о конкретной транзакции
@@ -50,9 +48,13 @@ public class TransactionController {
 
     // Получить все транзакции продавца
     @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<TransactionShortDTO>> getTransactionsBySellerId(@PathVariable Long sellerId) {
-        List<TransactionShortDTO> transactions = transactionService.getTransactionsBySellerId(sellerId);
-        return ResponseEntity.ok(transactions);
+    public ResponseEntity<CustomPage<TransactionDTO>> getTransactionsBySellerId(
+            @PathVariable Long sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int perPage
+    ) {
+        Page<TransactionDTO> transactions = transactionService.getTransactionsBySellerId(sellerId, page, perPage);
+        return ResponseEntity.ok(new CustomPage<>(transactions));
     }
 
     // Обновить транзакцию

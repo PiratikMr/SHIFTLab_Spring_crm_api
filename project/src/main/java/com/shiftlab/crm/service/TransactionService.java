@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
@@ -38,19 +36,22 @@ public class TransactionService {
         return new TransactionDTO(transactionRepository.save(transaction));
     }
 
-    public Page<TransactionShortDTO> getTransactions(int page, int perPage) {
+    public Page<TransactionDTO> getTransactions(int page, int perPage) {
         return transactionRepository.findAll(PageRequest.of(page, perPage))
-                .map(TransactionShortDTO::new);
+                .map(TransactionDTO::new);
     }
 
     public TransactionDTO getTransactionById(Long id) {
         return new TransactionDTO(getPureTransactionById(id));
     }
 
-    public List<TransactionShortDTO> getTransactionsBySellerId(Long sellerId) {
+    public Page<TransactionDTO> getTransactionsBySellerId(Long sellerId, int page, int perPage) {
         Seller seller = sellerRepository.findById(sellerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Продавец с ID " + sellerId + " не найден"));
-        return transactionRepository.findBySeller(seller).stream().map(TransactionShortDTO::new).collect(Collectors.toList());
+
+        Page<Transaction> transactions = transactionRepository.findBySeller(seller, PageRequest.of(page, perPage));
+
+        return transactions.map(TransactionDTO::new);
     }
 
     @Transactional

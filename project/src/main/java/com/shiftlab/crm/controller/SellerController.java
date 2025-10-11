@@ -1,5 +1,6 @@
 package com.shiftlab.crm.controller;
 
+import com.shiftlab.crm.dto.CustomPage;
 import com.shiftlab.crm.dto.Seller.SellerDTO;
 import com.shiftlab.crm.dto.Seller.SellerShortDTO;
 import com.shiftlab.crm.model.Seller;
@@ -22,12 +23,12 @@ public class SellerController {
 
     // Список всех продавцов
     @GetMapping
-    public ResponseEntity<Page<SellerShortDTO>> getSellers(
+    public ResponseEntity<CustomPage<SellerShortDTO>> getSellers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int perPage
     ) {
         Page<SellerShortDTO> sellers = sellerService.getSellers(page, perPage);
-        return ResponseEntity.ok(sellers);
+        return ResponseEntity.ok(new CustomPage<>(sellers));
     }
 
     // Инфо о конкретном продавце

@@ -2,7 +2,6 @@ package com.shiftlab.crm.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.shiftlab.crm.dto.Transaction.TransactionDTO;
-import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.service.TransactionService;
 import org.junit.jupiter.api.Test;

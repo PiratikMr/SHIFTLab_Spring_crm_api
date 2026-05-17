@@ -2,25 +2,43 @@ services:
   db:
     image: postgres:15
     container_name: postgres_db
-    environment:
-      POSTGRES_DB: crm_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
+    env_file: .env
     ports:
-      - "5444:5432"
+      - "5432:5432"
     volumes:
       - postgres_volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  spring:
+  flyway:
+    image: flyway/flyway:9
+    volumes:
+      - ./database/migrations:/flyway/sql
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://postgres_db:5432/${POSTGRES_DB}
+      - FLYWAY_USER=${POSTGRES_USER}
+      - FLYWAY_PASSWORD=${POSTGRES_PASSWORD}
+      - FLYWAY_CONNECT_RETRIES=10
+    command: migrate
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    profiles: ["deploy"]
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: spring_api
+    container_name: crm_app
     ports:
       - "8080:8080"
     depends_on:
-      - db
-    command: java -jar /project/build/libs/spring-crm-api.jar
+      flyway:
+        condition: service_completed_successfully
+    env_file: .env
 
 volumes:
   postgres_volume:

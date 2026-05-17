@@ -1,0 +1,19 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.postgresql:postgresql:42.6.2'
+    }
+}
+
+plugins {
+    id 'org.flywaydb.flyway' version '9.22.3'
+}
+
+flyway {
+    url = "jdbc:postgresql://${System.getenv('POSTGRES_HOST') ?: 'localhost'}:5432/${System.getenv('POSTGRES_DB') ?: 'crm_db'}"
+    user = System.getenv('POSTGRES_USER') ?: 'postgres'
+    password = System.getenv('POSTGRES_PASSWORD') ?: '1234'
+    locations = ['filesystem:migrations']
+}

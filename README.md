@@ -27,6 +27,7 @@
 
 ### Технологический стек
 *   **Backend:** Spring Boot 3.2.x, Java 21, Spring Data JPA, Lombok, Jakarta Validation.
+*   **Документация:** SpringDoc OpenAPI 2.6 (Swagger UI).
 *   **База данных:** PostgreSQL 15.
 *   **Сборка/Оркестрация:** Gradle, Docker, Docker Compose.
 
@@ -36,6 +37,7 @@
 *   `org.springframework.boot:spring-boot-starter-validation` - Для валидации данных входящих DTO/сущностей.
 *   `org.postgresql:postgresql` - JDBC-драйвер для базы данных PostgreSQL.
 *   `org.projectlombok:lombok` - Для сокращения шаблонного кода (генерация геттеров, сеттеров и т.д.).
+*   `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0` - Генерация OpenAPI-спецификации и Swagger UI.
 *   `org.springframework.boot:spring-boot-devtools` - Для ускорения разработки (автоматический перезапуск).
 
 ### Структура БД
@@ -89,6 +91,8 @@ docker compose --profile deploy up -d --build
 | Сервис | Порт | URL (при локальном запуске) |
 | :--- | :--- | :--- |
 | **Spring API** | `8080` | `http://localhost:8080/api` |
+| **Swagger UI** | `8080` | `http://localhost:8080/swagger-ui.html` |
+| **OpenAPI JSON** | `8080` | `http://localhost:8080/v3/api-docs` |
 | **PostgreSQL DB** | `5432` | `localhost:5432` |
 | **DB Name / User / Pass** | - | `crm_db` / `postgres` / `1234` |
 

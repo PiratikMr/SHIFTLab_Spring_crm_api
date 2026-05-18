@@ -14,3 +14,7 @@ spring:
   web:
     resources:
       add-mappings: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

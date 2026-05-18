@@ -8,6 +8,7 @@ import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.repository.SellerRepository;
 import com.shiftlab.crm.repository.TransactionRepository;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -97,6 +98,11 @@ public class AnalyticsService {
         return new BestPeriodResult(bestStart, bestEnd, maxCount);
     }
 
-    public record BestPeriodResult(LocalDate startDate, LocalDate endDate, int transactionCount) {
+    @Schema(description = "Наиболее продуктивный период продавца")
+    public record BestPeriodResult(
+            @Schema(description = "Начало периода") LocalDate startDate,
+            @Schema(description = "Конец периода (не включительно)") LocalDate endDate,
+            @Schema(description = "Количество транзакций в периоде") int transactionCount
+    ) {
     }
 }

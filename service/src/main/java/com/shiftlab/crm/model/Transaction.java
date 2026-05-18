@@ -1,16 +1,22 @@
 package com.shiftlab.crm.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "transactions")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
+@ToString(exclude = "seller")
+@EqualsAndHashCode(of = "id")
 public class Transaction {
 
     @Id
@@ -21,7 +27,6 @@ public class Transaction {
     @JoinColumn(name = "seller_id", nullable = false)
     private Seller seller;
 
-    @DecimalMin(value = "0", message = "Сумма транзакции не может быть отрицательной")
     @Column(nullable = false)
     private BigDecimal amount;
 
@@ -31,8 +36,4 @@ public class Transaction {
 
     @Column(nullable = false)
     private LocalDateTime transactionDate;
-
-    public enum PaymentType {
-        CASH, CARD, TRANSFER
-    }
 }

@@ -1,7 +1,8 @@
 package com.shiftlab.crm.controller;
 
-import com.shiftlab.crm.dto.Seller.SellerDTO;
-import com.shiftlab.crm.dto.Seller.SellerShortDTO;
+import com.shiftlab.crm.dto.seller.SellerDTO;
+import com.shiftlab.crm.dto.seller.SellerShortDTO;
+import com.shiftlab.crm.model.PeriodType;
 import com.shiftlab.crm.service.AnalyticsService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -10,9 +11,16 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+
+import static com.shiftlab.crm.controller.ApiPaths.ANALYTICS;
+import static com.shiftlab.crm.controller.ApiPaths.BASE;
+import static com.shiftlab.crm.controller.ApiPaths.MOST_PRODUCTIVE_PERIOD;
+import static com.shiftlab.crm.controller.ApiPaths.MOST_PRODUCTIVE_SELLER;
+import static com.shiftlab.crm.controller.ApiPaths.SELLERS_BELOW_AMOUNT;
 
 @RestController
-@RequestMapping("/api/analytics")
+@RequestMapping(BASE + ANALYTICS)
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
@@ -21,15 +29,13 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
-    // Получить самого продуктивного продавца за период (day, month, quarter, year)
-    @GetMapping("/most-productive-seller/{periodType}")
+    @GetMapping(MOST_PRODUCTIVE_SELLER + "/{periodType}")
     public ResponseEntity<SellerDTO> getMostProductiveSeller(@PathVariable String periodType) {
-        SellerDTO seller = analyticsService.getMostProductiveSeller(periodType);
-        return ResponseEntity.ok(seller);
+        Optional<SellerDTO> seller = analyticsService.getMostProductiveSeller(PeriodType.of(periodType));
+        return ResponseEntity.of(seller);
     }
 
-    // Получить список продавцов с суммой меньше указанной
-    @GetMapping("/sellers-below-amount")
+    @GetMapping(SELLERS_BELOW_AMOUNT)
     public ResponseEntity<List<SellerShortDTO>> getSellersWithTotalAmountLessThan(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
@@ -39,8 +45,7 @@ public class AnalyticsController {
         return ResponseEntity.ok(sellers);
     }
 
-    // *Получение лучшего периода времени (диапазон дат) с выбранным размером (в днях) для переданного продавца
-    @GetMapping("/most-productive-period/{sellerId}")
+    @GetMapping(MOST_PRODUCTIVE_PERIOD + "/{sellerId}")
     public ResponseEntity<AnalyticsService.BestPeriodResult> getMostProductivePeriod(
             @PathVariable Long sellerId,
             @RequestParam(defaultValue = "1") int days

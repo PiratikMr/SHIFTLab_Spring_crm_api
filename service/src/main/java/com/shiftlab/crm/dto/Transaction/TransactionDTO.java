@@ -1,5 +1,6 @@
-package com.shiftlab.crm.dto.Transaction;
+package com.shiftlab.crm.dto.transaction;
 
+import com.shiftlab.crm.model.PaymentType;
 import com.shiftlab.crm.model.Transaction;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TransactionDTO extends TransactionShortDTO {
     private Long sellerId;
-    private Transaction.PaymentType paymentType;
+    private PaymentType paymentType;
 
     public TransactionDTO(Transaction transaction) {
         super(transaction);

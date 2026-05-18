@@ -1,10 +1,13 @@
 package com.shiftlab.crm.service;
 
-import com.shiftlab.crm.dto.Seller.SellerDTO;
-import com.shiftlab.crm.dto.Seller.SellerShortDTO;
+import com.shiftlab.crm.dto.seller.SellerDTO;
+import com.shiftlab.crm.dto.seller.SellerShortDTO;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
+import com.shiftlab.crm.fixture.TestDataFactory;
+import com.shiftlab.crm.model.PeriodType;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.model.Transaction;
+import com.shiftlab.crm.repository.SellerCountProjection;
 import com.shiftlab.crm.repository.SellerRepository;
 import com.shiftlab.crm.repository.TransactionRepository;
 import org.junit.jupiter.api.Test;
@@ -36,34 +39,31 @@ class AnalyticsServiceTest {
 
     @Test
     void getMostProductiveSeller_WhenSellerExists_ShouldReturnSellerDTO() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-        seller.setName("Лучший Продавец");
+        Seller seller = TestDataFactory.seller("Лучший Продавец");
         when(transactionRepository.findMostProductiveSellerByTotalAmount(any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(Optional.of(seller));
 
-        SellerDTO result = analyticsService.getMostProductiveSeller("DAY");
+        Optional<SellerDTO> result = analyticsService.getMostProductiveSeller(PeriodType.DAY);
 
-        assertNotNull(result);
-        assertEquals("Лучший Продавец", result.getName());
-        assertEquals(1L, result.getId());
+        assertTrue(result.isPresent());
+        assertEquals("Лучший Продавец", result.get().getName());
+        assertEquals(1L, result.get().getId());
         verify(transactionRepository, times(1)).findMostProductiveSellerByTotalAmount(any(), any());
     }
 
     @Test
     void getMostProductiveSeller_WithInvalidPeriodType_ShouldThrowException() {
-        String invalidPeriod = "OTHER";
-        assertThrows(IllegalArgumentException.class, () -> analyticsService.getMostProductiveSeller(invalidPeriod));
+        assertThrows(IllegalArgumentException.class, () -> PeriodType.of("OTHER"));
     }
 
     @Test
     void getSellersWithTotalAmountLessThan_ShouldReturnCorrectSellers() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-        seller.setName("Скромный продавец");
-        List<Seller> sellers = Collections.singletonList(seller);
-        when(sellerRepository.findSellersWithTotalAmountBelow(any(BigDecimal.class), any(LocalDateTime.class), any(LocalDateTime.class)))
-                .thenReturn(sellers);
+        SellerCountProjection projection = mock(SellerCountProjection.class);
+        when(projection.getId()).thenReturn(1L);
+        when(projection.getName()).thenReturn("Скромный продавец");
+        when(projection.getTransactionsCount()).thenReturn(3L);
+        when(sellerRepository.findSellersWithTotalAmountBelowWithCount(any(BigDecimal.class), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(Collections.singletonList(projection));
 
         List<SellerShortDTO> result = analyticsService.getSellersWithTotalAmountLessThan(
                 LocalDateTime.now().minusDays(1), LocalDateTime.now(), new BigDecimal("1000"));
@@ -82,8 +82,7 @@ class AnalyticsServiceTest {
 
     @Test
     void findMostProductiveTimePeriod_WhenNoTransactions_ShouldReturnEmptyResult() {
-        Seller seller = new Seller();
-        seller.setId(1L);
+        Seller seller = TestDataFactory.seller();
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
         when(transactionRepository.findBySeller(seller)).thenReturn(Collections.emptyList());
 
@@ -96,20 +95,16 @@ class AnalyticsServiceTest {
 
     @Test
     void findMostProductiveTimePeriod_WithTransactions_ShouldReturnBestPeriod() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-
-        Transaction t1 = new Transaction();
-        t1.setTransactionDate(LocalDateTime.of(2025, 10, 5, 10, 0));
-        Transaction t2 = new Transaction();
-        t2.setTransactionDate(LocalDateTime.of(2025, 10, 7, 12, 0));
-        Transaction t3 = new Transaction();
-        t3.setTransactionDate(LocalDateTime.of(2025, 10, 7, 14, 0));
-        List<Transaction> transactions = List.of(t1, t2, t3);
-
+        Seller seller = TestDataFactory.seller();
+        List<Transaction> transactions = List.of(
+                TestDataFactory.transactionAt(LocalDateTime.of(2025, 10, 5, 10, 0)),
+                TestDataFactory.transactionAt(LocalDateTime.of(2025, 10, 7, 12, 0)),
+                TestDataFactory.transactionAt(LocalDateTime.of(2025, 10, 7, 14, 0))
+        );
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
         when(transactionRepository.findBySeller(seller)).thenReturn(transactions);
 
+        // Окно 1 день: лучший день — Oct 7 с двумя транзакциями
         AnalyticsService.BestPeriodResult result = analyticsService.findMostProductiveTimePeriod(1L, 1);
 
         assertEquals(2, result.transactionCount());
@@ -117,37 +112,29 @@ class AnalyticsServiceTest {
     }
 
     @Test
-    void findMostProductiveTimePeriod_WhenWindowLargerThanData_ShouldReturnAllTransactions() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-
-        Transaction t1 = new Transaction();
-        t1.setTransactionDate(LocalDateTime.of(2025, 10, 1, 10, 0));
-        Transaction t2 = new Transaction();
-        t2.setTransactionDate(LocalDateTime.of(2025, 10, 3, 12, 0));
-        List<Transaction> transactions = List.of(t1, t2);
-
+    void findMostProductiveTimePeriod_WhenWindowLargerThanData_ShouldReturnBestCalendarWindow() {
+        Seller seller = TestDataFactory.seller();
+        List<Transaction> transactions = List.of(
+                TestDataFactory.transactionAt(LocalDateTime.of(2025, 10, 1, 10, 0)),
+                TestDataFactory.transactionAt(LocalDateTime.of(2025, 10, 3, 12, 0))
+        );
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
         when(transactionRepository.findBySeller(seller)).thenReturn(transactions);
 
-        // Окно 5 дней > 2 активных дней с транзакциями → возвращаем всё
+        // Окно 5 дней: [Oct1, Oct5] содержит обе транзакции (Oct1 и Oct3)
         AnalyticsService.BestPeriodResult result = analyticsService.findMostProductiveTimePeriod(1L, 5);
 
         assertEquals(2, result.transactionCount());
         assertEquals(LocalDate.of(2025, 10, 1), result.startDate());
-        assertEquals(LocalDate.of(2025, 10, 4), result.endDate()); // last + 1 day
+        assertEquals(LocalDate.of(2025, 10, 6), result.endDate()); // bestStart + days
     }
 
     @Test
     void getMostProductiveSeller_ForMonth_ShouldUseStartOfDay() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-        seller.setName("Продавец Месяца");
-
+        Seller seller = TestDataFactory.seller("Продавец Месяца");
         when(transactionRepository.findMostProductiveSellerByTotalAmount(any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenAnswer(invocation -> {
                     LocalDateTime startDate = invocation.getArgument(0);
-                    // Проверяем что startDate имеет нулевое время (00:00:00)
                     assertEquals(0, startDate.getHour(), "startDate должен начинаться с 00:00");
                     assertEquals(0, startDate.getMinute());
                     assertEquals(0, startDate.getSecond());
@@ -155,22 +142,20 @@ class AnalyticsServiceTest {
                     return Optional.of(seller);
                 });
 
-        SellerDTO result = analyticsService.getMostProductiveSeller("MONTH");
+        Optional<SellerDTO> result = analyticsService.getMostProductiveSeller(PeriodType.MONTH);
 
-        assertNotNull(result);
-        assertEquals("Продавец Месяца", result.getName());
+        assertTrue(result.isPresent());
+        assertEquals("Продавец Месяца", result.get().getName());
     }
 
     @Test
-    void getMostProductiveSeller_WhenNoTransactions_ShouldReturnEmptyDTO() {
+    void getMostProductiveSeller_WhenNoTransactions_ShouldReturnEmptyOptional() {
         when(transactionRepository.findMostProductiveSellerByTotalAmount(any(LocalDateTime.class), any(LocalDateTime.class)))
                 .thenReturn(Optional.empty());
 
-        SellerDTO result = analyticsService.getMostProductiveSeller("DAY");
+        Optional<SellerDTO> result = analyticsService.getMostProductiveSeller(PeriodType.DAY);
 
-        assertNotNull(result);
-        assertNull(result.getName());
-        assertNull(result.getId());
+        assertTrue(result.isEmpty());
     }
 
     @Test

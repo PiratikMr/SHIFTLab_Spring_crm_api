@@ -1,8 +1,8 @@
 package com.shiftlab.crm.service;
 
-import com.shiftlab.crm.dto.Seller.SellerDTO;
-import com.shiftlab.crm.dto.Seller.SellerShortDTO;
 import com.shiftlab.crm.dto.SellerRequest;
+import com.shiftlab.crm.dto.seller.SellerDTO;
+import com.shiftlab.crm.dto.seller.SellerShortDTO;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.repository.SellerRepository;
@@ -33,8 +33,8 @@ public class SellerService {
 
     @Transactional(readOnly = true)
     public Page<SellerShortDTO> getSellers(int page, int perPage) {
-        Page<Seller> sellerPage = sellerRepository.findAll(PageRequest.of(page, perPage));
-        return sellerPage.map(SellerShortDTO::new);
+        return sellerRepository.findAllWithTransactionCount(PageRequest.of(page, perPage))
+                .map(SellerShortDTO::new);
     }
 
     @Transactional(readOnly = true)
@@ -55,11 +55,9 @@ public class SellerService {
     @Transactional
     public void deleteSeller(Long id) {
         Seller seller = getPureSellerById(id);
-        sellerRepository.delete(seller);
+        seller.setDeleted(true);
+        sellerRepository.save(seller);
     }
-
-
-
 
     private Seller getPureSellerById(Long id) {
         return sellerRepository.findById(id)

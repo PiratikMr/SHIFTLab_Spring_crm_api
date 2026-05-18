@@ -1,8 +1,10 @@
 package com.shiftlab.crm.service;
 
-import com.shiftlab.crm.dto.Transaction.TransactionDTO;
+import com.shiftlab.crm.dto.transaction.TransactionDTO;
 import com.shiftlab.crm.dto.TransactionRequest;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
+import com.shiftlab.crm.fixture.TestDataFactory;
+import com.shiftlab.crm.model.PaymentType;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.repository.SellerRepository;
@@ -37,22 +39,13 @@ class TransactionServiceTest {
 
     @BeforeEach
     void setUp() {
-        seller = new Seller();
-        seller.setId(1L);
-        seller.setName("Тест Продавец");
-
-        transaction = new Transaction();
-        transaction.setId(100L);
-        transaction.setAmount(new BigDecimal("123.45"));
-        transaction.setSeller(seller);
+        seller = TestDataFactory.seller("Тест Продавец");
+        transaction = TestDataFactory.transaction(seller);
     }
 
     @Test
     void createTransaction_WhenSellerExists_ShouldSaveTransaction() {
-        TransactionRequest request = new TransactionRequest();
-        request.setAmount(new BigDecimal("123.45"));
-        request.setPaymentType(Transaction.PaymentType.CASH);
-
+        TransactionRequest request = TestDataFactory.transactionRequest(new BigDecimal("123.45"), PaymentType.CASH);
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
         when(transactionRepository.save(any(Transaction.class))).thenReturn(transaction);
 
@@ -76,51 +69,50 @@ class TransactionServiceTest {
 
     @Test
     void getTransactionById_WhenFound_ShouldReturnDTO() {
-        when(transactionRepository.findById(100L)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.findById(TestDataFactory.DEFAULT_TRANSACTION_ID)).thenReturn(Optional.of(transaction));
 
-        TransactionDTO result = transactionService.getTransactionById(100L);
+        TransactionDTO result = transactionService.getTransactionById(TestDataFactory.DEFAULT_TRANSACTION_ID);
 
         assertNotNull(result);
-        assertEquals(100L, result.getId());
-        assertEquals(new BigDecimal("123.45"), result.getAmount());
+        assertEquals(TestDataFactory.DEFAULT_TRANSACTION_ID, result.getId());
+        assertEquals(TestDataFactory.DEFAULT_AMOUNT, result.getAmount());
     }
 
     @Test
     void getTransactionById_WhenNotFound_ShouldThrowException() {
-        when(transactionRepository.findById(100L)).thenReturn(Optional.empty());
+        when(transactionRepository.findById(TestDataFactory.DEFAULT_TRANSACTION_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> transactionService.getTransactionById(100L));
+        assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.getTransactionById(TestDataFactory.DEFAULT_TRANSACTION_ID));
     }
 
     @Test
     void updateTransaction_WhenFound_ShouldUpdateAndReturnDTO() {
-        TransactionRequest request = new TransactionRequest();
-        request.setAmount(new BigDecimal("500.00"));
-        request.setPaymentType(Transaction.PaymentType.CARD);
-
-        when(transactionRepository.findById(100L)).thenReturn(Optional.of(transaction));
+        TransactionRequest request = TestDataFactory.transactionRequest(new BigDecimal("500.00"), PaymentType.CARD);
+        when(transactionRepository.findById(TestDataFactory.DEFAULT_TRANSACTION_ID)).thenReturn(Optional.of(transaction));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(i -> i.getArguments()[0]);
 
-        TransactionDTO result = transactionService.updateTransaction(100L, request);
+        TransactionDTO result = transactionService.updateTransaction(TestDataFactory.DEFAULT_TRANSACTION_ID, request);
 
         assertEquals(new BigDecimal("500.00"), result.getAmount());
-        assertEquals(Transaction.PaymentType.CARD, result.getPaymentType());
+        assertEquals(PaymentType.CARD, result.getPaymentType());
     }
 
     @Test
     void deleteTransaction_WhenFound_ShouldCallDelete() {
-        when(transactionRepository.findById(100L)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.findById(TestDataFactory.DEFAULT_TRANSACTION_ID)).thenReturn(Optional.of(transaction));
 
-        transactionService.deleteTransaction(100L);
+        transactionService.deleteTransaction(TestDataFactory.DEFAULT_TRANSACTION_ID);
 
         verify(transactionRepository, times(1)).delete(transaction);
     }
 
     @Test
     void deleteTransaction_WhenNotFound_ShouldThrowException() {
-        when(transactionRepository.findById(100L)).thenReturn(Optional.empty());
+        when(transactionRepository.findById(TestDataFactory.DEFAULT_TRANSACTION_ID)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> transactionService.deleteTransaction(100L));
+        assertThrows(ResourceNotFoundException.class,
+                () -> transactionService.deleteTransaction(TestDataFactory.DEFAULT_TRANSACTION_ID));
     }
 
     @Test

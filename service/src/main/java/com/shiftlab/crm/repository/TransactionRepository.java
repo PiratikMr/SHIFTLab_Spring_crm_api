@@ -17,6 +17,7 @@ import java.util.Optional;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
     List<Transaction> findBySeller(Seller seller);
+
     Page<Transaction> findBySeller(Seller seller, Pageable pageable);
 
     @Query("SELECT t.seller FROM Transaction t WHERE t.transactionDate between :start AND :end GROUP BY t.seller ORDER BY SUM(t.amount) DESC LIMIT 1")

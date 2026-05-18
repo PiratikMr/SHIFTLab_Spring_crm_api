@@ -1,7 +1,9 @@
 package com.shiftlab.crm.controller;
 
-import com.shiftlab.crm.dto.Seller.SellerDTO;
-import com.shiftlab.crm.dto.Seller.SellerShortDTO;
+import com.shiftlab.crm.dto.seller.SellerDTO;
+import com.shiftlab.crm.dto.seller.SellerShortDTO;
+import com.shiftlab.crm.fixture.TestDataFactory;
+import com.shiftlab.crm.model.PeriodType;
 import com.shiftlab.crm.service.AnalyticsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +16,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
+import static com.shiftlab.crm.controller.ApiPaths.ANALYTICS;
+import static com.shiftlab.crm.controller.ApiPaths.BASE;
+import static com.shiftlab.crm.controller.ApiPaths.MOST_PRODUCTIVE_PERIOD;
+import static com.shiftlab.crm.controller.ApiPaths.MOST_PRODUCTIVE_SELLER;
+import static com.shiftlab.crm.controller.ApiPaths.SELLERS_BELOW_AMOUNT;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,24 +38,15 @@ public class AnalyticsControllerTest {
     @MockBean
     private AnalyticsService analyticsService;
 
-    private final String BASE_URL = "/api/analytics";
     private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
 
     @Test
     void getMostProductiveSeller_ShouldReturnSellerDTO_Success() throws Exception {
-        String periodType = "MONTH";
-
-        SellerDTO seller = new SellerDTO();
-        seller.setId(1L);
-        seller.setName("Top Seller");
-        seller.setContactInfo("top@email.com");
-        seller.setRegistrationDate(LocalDateTime.now());
+        SellerDTO seller = TestDataFactory.sellerDTO("Top Seller");
         seller.setTransactionsCount(100);
-        seller.setTransactions(Collections.emptyList());
+        when(analyticsService.getMostProductiveSeller(PeriodType.MONTH)).thenReturn(Optional.of(seller));
 
-        when(analyticsService.getMostProductiveSeller(periodType)).thenReturn(seller);
-
-        mockMvc.perform(get(BASE_URL + "/most-productive-seller/{periodType}", periodType)
+        mockMvc.perform(get(BASE + ANALYTICS + MOST_PRODUCTIVE_SELLER + "/MONTH")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Top Seller"))
@@ -61,16 +59,12 @@ public class AnalyticsControllerTest {
         LocalDateTime end = LocalDateTime.of(2024, 2, 1, 0, 0);
         BigDecimal maxAmount = new BigDecimal("1000.00");
 
-        SellerShortDTO seller = new SellerShortDTO();
-        seller.setId(1L);
-        seller.setName("Low Volume Seller");
-        seller.setContactInfo("low@email.com");
+        SellerShortDTO seller = TestDataFactory.sellerShortDTO("Low Volume Seller");
         seller.setTransactionsCount(5);
-
         when(analyticsService.getSellersWithTotalAmountLessThan(any(LocalDateTime.class), any(LocalDateTime.class), eq(maxAmount)))
                 .thenReturn(List.of(seller));
 
-        mockMvc.perform(get(BASE_URL + "/sellers-below-amount")
+        mockMvc.perform(get(BASE + ANALYTICS + SELLERS_BELOW_AMOUNT)
                         .param("startDate", start.format(formatter))
                         .param("endDate", end.format(formatter))
                         .param("maxTotalAmount", maxAmount.toString())
@@ -84,7 +78,6 @@ public class AnalyticsControllerTest {
     void getMostProductivePeriod_ShouldReturnBestPeriodResult_Success() throws Exception {
         Long sellerId = 1L;
         int days = 7;
-
         AnalyticsService.BestPeriodResult result = new AnalyticsService.BestPeriodResult(
                 LocalDate.of(2024, 5, 1),
                 LocalDate.of(2024, 5, 7),
@@ -92,7 +85,7 @@ public class AnalyticsControllerTest {
         );
         when(analyticsService.findMostProductiveTimePeriod(sellerId, days)).thenReturn(result);
 
-        mockMvc.perform(get(BASE_URL + "/most-productive-period/{sellerId}", sellerId)
+        mockMvc.perform(get(BASE + ANALYTICS + MOST_PRODUCTIVE_PERIOD + "/" + sellerId)
                         .param("days", String.valueOf(days))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -100,14 +93,9 @@ public class AnalyticsControllerTest {
                 .andExpect(jsonPath("$.startDate").value("2024-05-01"));
     }
 
-
     @Test
     void getMostProductiveSeller_ShouldReturnBadRequest_WhenInvalidPeriodType() throws Exception {
-        String invalidPeriodType = "WEEK";
-        when(analyticsService.getMostProductiveSeller(invalidPeriodType))
-                .thenThrow(new IllegalArgumentException("Неверный тип периода: " + invalidPeriodType));
-
-        mockMvc.perform(get(BASE_URL + "/most-productive-seller/{periodType}", invalidPeriodType)
+        mockMvc.perform(get(BASE + ANALYTICS + MOST_PRODUCTIVE_SELLER + "/WEEK")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Неверный тип периода")));
@@ -118,7 +106,7 @@ public class AnalyticsControllerTest {
         when(analyticsService.findMostProductiveTimePeriod(1L, 0))
                 .thenThrow(new IllegalArgumentException("Количество дней должно быть больше 0"));
 
-        mockMvc.perform(get(BASE_URL + "/most-productive-period/1")
+        mockMvc.perform(get(BASE + ANALYTICS + MOST_PRODUCTIVE_PERIOD + "/1")
                         .param("days", "0"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Количество дней")));

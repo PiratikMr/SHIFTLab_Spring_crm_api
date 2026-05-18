@@ -1,4 +1,4 @@
-package com.shiftlab.crm.dto.Transaction;
+package com.shiftlab.crm.dto.transaction;
 
 import com.shiftlab.crm.model.Transaction;
 import lombok.Data;

@@ -1,8 +1,7 @@
 package com.shiftlab.crm.service;
 
-import com.shiftlab.crm.dto.Transaction.TransactionDTO;
-import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
 import com.shiftlab.crm.dto.TransactionRequest;
+import com.shiftlab.crm.dto.transaction.TransactionDTO;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.model.Transaction;
@@ -76,8 +75,6 @@ public class TransactionService {
         Transaction transaction = getPureTransactionById(id);
         transactionRepository.delete(transaction);
     }
-
-
 
     private Transaction getPureTransactionById(Long id) {
         return transactionRepository.findById(id)

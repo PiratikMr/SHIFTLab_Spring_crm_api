@@ -1,7 +1,7 @@
 package com.shiftlab.crm.controller;
 
 import com.shiftlab.crm.dto.CustomPage;
-import com.shiftlab.crm.dto.Transaction.TransactionDTO;
+import com.shiftlab.crm.dto.transaction.TransactionDTO;
 import com.shiftlab.crm.dto.TransactionRequest;
 import com.shiftlab.crm.service.TransactionService;
 import jakarta.validation.Valid;
@@ -10,8 +10,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import static com.shiftlab.crm.controller.ApiPaths.BASE;
+import static com.shiftlab.crm.controller.ApiPaths.SELLER_SUB;
+import static com.shiftlab.crm.controller.ApiPaths.TRANSACTIONS;
+
 @RestController
-@RequestMapping("/api/transactions")
+@RequestMapping(BASE + TRANSACTIONS)
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -20,7 +24,6 @@ public class TransactionController {
         this.transactionService = transactionService;
     }
 
-    // Получить список всех транзакций
     @GetMapping
     public ResponseEntity<CustomPage<TransactionDTO>> getTransactions(
             @RequestParam(defaultValue = "0") int page,
@@ -30,24 +33,19 @@ public class TransactionController {
         return ResponseEntity.ok(new CustomPage<>(transactions));
     }
 
-    // Получить информацию о конкретной транзакции
     @GetMapping("/{id}")
     public ResponseEntity<TransactionDTO> getTransactionById(@PathVariable Long id) {
-        TransactionDTO transaction = transactionService.getTransactionById(id);
-        return ResponseEntity.ok(transaction);
+        return ResponseEntity.ok(transactionService.getTransactionById(id));
     }
 
-    // Создать новую транзакцию
-    @PostMapping("/seller/{sellerId}")
+    @PostMapping(SELLER_SUB + "/{sellerId}")
     public ResponseEntity<TransactionDTO> createTransaction(
             @PathVariable Long sellerId,
             @Valid @RequestBody TransactionRequest request) {
-        TransactionDTO createdTransaction = transactionService.createTransaction(sellerId, request);
-        return new ResponseEntity<>(createdTransaction, HttpStatus.CREATED);
+        return new ResponseEntity<>(transactionService.createTransaction(sellerId, request), HttpStatus.CREATED);
     }
 
-    // Получить все транзакции продавца
-    @GetMapping("/seller/{sellerId}")
+    @GetMapping(SELLER_SUB + "/{sellerId}")
     public ResponseEntity<CustomPage<TransactionDTO>> getTransactionsBySellerId(
             @PathVariable Long sellerId,
             @RequestParam(defaultValue = "0") int page,
@@ -57,14 +55,11 @@ public class TransactionController {
         return ResponseEntity.ok(new CustomPage<>(transactions));
     }
 
-    // Обновить транзакцию
     @PutMapping("/{id}")
     public ResponseEntity<TransactionDTO> updateTransaction(@PathVariable Long id, @Valid @RequestBody TransactionRequest request) {
-        TransactionDTO updatedTransaction = transactionService.updateTransaction(id, request);
-        return ResponseEntity.ok(updatedTransaction);
+        return ResponseEntity.ok(transactionService.updateTransaction(id, request));
     }
 
-    // Удалить транзакцию
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
         transactionService.deleteTransaction(id);

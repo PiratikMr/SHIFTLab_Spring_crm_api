@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS sellers
     id                BIGSERIAL    PRIMARY KEY,
     name              VARCHAR(255) NOT NULL,
     contact_info      VARCHAR(255),
-    registration_date TIMESTAMP    NOT NULL
+    registration_date TIMESTAMP    NOT NULL,
+    is_deleted        BOOLEAN      NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS transactions

@@ -1,6 +1,6 @@
 package com.shiftlab.crm.dto;
 
-import com.shiftlab.crm.model.Transaction;
+import com.shiftlab.crm.model.PaymentType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -17,5 +17,5 @@ public class TransactionRequest {
     private BigDecimal amount;
 
     @NotNull(message = "Тип оплаты обязателен")
-    private Transaction.PaymentType paymentType;
+    private PaymentType paymentType;
 }

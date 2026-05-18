@@ -1,8 +1,9 @@
 package com.shiftlab.crm.service;
 
-import com.shiftlab.crm.dto.Seller.SellerDTO;
-import com.shiftlab.crm.dto.Seller.SellerShortDTO;
+import com.shiftlab.crm.dto.seller.SellerDTO;
+import com.shiftlab.crm.dto.seller.SellerShortDTO;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
+import com.shiftlab.crm.model.PeriodType;
 import com.shiftlab.crm.model.Seller;
 import com.shiftlab.crm.model.Transaction;
 import com.shiftlab.crm.repository.SellerRepository;
@@ -13,9 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 public class AnalyticsService {
@@ -29,38 +30,34 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public SellerDTO getMostProductiveSeller(String periodType) {
+    public Optional<SellerDTO> getMostProductiveSeller(PeriodType periodType) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate = switch (periodType.toUpperCase()) {
-            case "DAY" -> now.toLocalDate().atStartOfDay();
-            case "MONTH" -> now.toLocalDate().withDayOfMonth(1).atStartOfDay();
-            case "QUARTER" -> {
+        LocalDateTime startDate = switch (periodType) {
+            case DAY -> now.toLocalDate().atStartOfDay();
+            case MONTH -> now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+            case QUARTER -> {
                 int startMonth = ((now.getMonthValue() - 1) / 3) * 3 + 1;
                 yield now.toLocalDate().withMonth(startMonth).withDayOfMonth(1).atStartOfDay();
             }
-            case "YEAR" -> now.toLocalDate().withDayOfYear(1).atStartOfDay();
-            default -> throw new IllegalArgumentException("Неверный тип периода: " + periodType);
+            case YEAR -> now.toLocalDate().withDayOfYear(1).atStartOfDay();
         };
 
         return transactionRepository.findMostProductiveSellerByTotalAmount(startDate, now)
-                .map(SellerDTO::new)
-                .orElse(new SellerDTO());
+                .map(SellerDTO::new);
     }
 
     @Transactional(readOnly = true)
     public List<SellerShortDTO> getSellersWithTotalAmountLessThan(LocalDateTime startDate, LocalDateTime endDate, BigDecimal maxTotalAmount) {
-        return sellerRepository.findSellersWithTotalAmountBelow(maxTotalAmount, startDate, endDate)
+        return sellerRepository.findSellersWithTotalAmountBelowWithCount(maxTotalAmount, startDate, endDate)
                 .stream()
                 .map(SellerShortDTO::new)
                 .toList();
     }
 
 
-    // *Получение лучшего периода времени (диапазон дат) с выбранным размером (в днях) для переданного продавца
-
-    // Задача решается "скользящим окном" с помощью префиксных сумм.
-    // Агрегируем транзакции по дням, строим префиксные суммы для O(1) расчета сумм диапазона.
-    // Затем за O(N - D) (N - количество транзакций, D — число дней) находим максимальную сумму в окне фиксированного размера.
+    // Получение лучшего периода времени (диапазон дат) с выбранным размером в днях для переданного продавца.
+    // Двухуказательный алгоритм O(N log N): сортируем все даты транзакций (с дублями),
+    // затем за O(N) скользим окном ровно days календарнхы дней и считаем транзакции внутри.
     @Transactional(readOnly = true)
     public BestPeriodResult findMostProductiveTimePeriod(Long sellerId, int days) {
         if (days <= 0) throw new IllegalArgumentException("Количество дней должно быть больше 0");
@@ -72,58 +69,34 @@ public class AnalyticsService {
 
         if (transactions.isEmpty()) return new BestPeriodResult(null, null, 0);
 
-        // агрегируем транзакции по дням
-        Map<LocalDate, Integer> dailyCounts = transactions.stream()
-                .collect(Collectors.groupingBy(
-                        t -> t.getTransactionDate().toLocalDate(),
-                        Collectors.summingInt(t -> 1)
-                ));
-
-        // сортируем даты
-        List<LocalDate> sortedDates = dailyCounts.keySet().stream().sorted()
+        // Берём все даты транзакций (с дублями — несколько транзакций в один день сохраняются)
+        List<LocalDate> sortedDates = transactions.stream()
+                .map(t -> t.getTransactionDate().toLocalDate())
+                .sorted()
                 .toList();
 
         int n = sortedDates.size();
-
-        // если данных меньше, чем размер окна, возвращаем все количество всех транзакций
-        if (n <= days) {
-            int totalTransactions = transactions.size();
-            LocalDate start = sortedDates.getFirst();
-            LocalDate end = sortedDates.getLast().plusDays(1);
-            return new BestPeriodResult(start, end, totalTransactions);
-        }
-
-
-        int[] dailyTransactionCounts = new int[n];
-        for (int i = 0; i < n; i++) {
-            dailyTransactionCounts[i] = dailyCounts.get(sortedDates.get(i));
-        }
-
-
-        int[] prefixSums = new int[n];
-        prefixSums[0] = dailyTransactionCounts[0];
-        for (int i = 1; i < n; i++) {
-            prefixSums[i] = prefixSums[i - 1] + dailyTransactionCounts[i];
-        }
-
-        int maxTransactions = 0;
+        int maxCount = 0;
         LocalDate bestStart = null;
-        LocalDate bestEnd = null;
+        int left = 0;
 
-        for (int i = 0; i <= n - days; i++) {
-            int j = i + days - 1;
-
-            int currentCount = prefixSums[j] - (i > 0 ? prefixSums[i - 1] : 0);
-
-            if (currentCount > maxTransactions) {
-                maxTransactions = currentCount;
-                bestStart = sortedDates.get(i);
-                bestEnd = sortedDates.get(j);
+        for (int right = 0; right < n; right++) {
+            // Сдвигаем левый указатель, пока окно шире days календарных дней
+            while (ChronoUnit.DAYS.between(sortedDates.get(left), sortedDates.get(right)) >= days) {
+                left++;
+            }
+            int count = right - left + 1;
+            if (count > maxCount) {
+                maxCount = count;
+                bestStart = sortedDates.get(left);
             }
         }
 
-        return new BestPeriodResult(bestStart, bestEnd != null ? bestEnd.plusDays(1) : null, maxTransactions);
+        //эксклюзивная правая граница календарного окна
+        LocalDate bestEnd = bestStart != null ? bestStart.plusDays(days) : null;
+        return new BestPeriodResult(bestStart, bestEnd, maxCount);
     }
 
-    public record BestPeriodResult(LocalDate startDate, LocalDate endDate, int transactionCount) {}
+    public record BestPeriodResult(LocalDate startDate, LocalDate endDate, int transactionCount) {
+    }
 }

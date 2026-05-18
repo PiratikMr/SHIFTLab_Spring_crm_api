@@ -1,10 +1,12 @@
 package com.shiftlab.crm.service;
 
-import com.shiftlab.crm.dto.Seller.SellerDTO;
-import com.shiftlab.crm.dto.Seller.SellerShortDTO;
+import com.shiftlab.crm.dto.seller.SellerDTO;
+import com.shiftlab.crm.dto.seller.SellerShortDTO;
 import com.shiftlab.crm.dto.SellerRequest;
 import com.shiftlab.crm.exception.ResourceNotFoundException;
+import com.shiftlab.crm.fixture.TestDataFactory;
 import com.shiftlab.crm.model.Seller;
+import com.shiftlab.crm.repository.SellerCountProjection;
 import com.shiftlab.crm.repository.SellerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +17,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -30,13 +35,8 @@ class SellerServiceTest {
 
     @Test
     void createSeller_ShouldSaveAndReturnDTO() {
-        SellerRequest request = new SellerRequest();
-        request.setName("Новый Продавец");
-
-        Seller savedSeller = new Seller();
-        savedSeller.setId(1L);
-        savedSeller.setName("Новый Продавец");
-
+        SellerRequest request = TestDataFactory.sellerRequest("Новый Продавец");
+        Seller savedSeller = TestDataFactory.seller("Новый Продавец");
         when(sellerRepository.save(any(Seller.class))).thenReturn(savedSeller);
 
         SellerShortDTO result = sellerService.createSeller(request);
@@ -44,17 +44,15 @@ class SellerServiceTest {
         assertNotNull(result);
         assertEquals(1L, result.getId());
 
-        ArgumentCaptor<Seller> sellerCaptor = ArgumentCaptor.forClass(Seller.class);
-        verify(sellerRepository).save(sellerCaptor.capture());
-        assertNotNull(sellerCaptor.getValue().getRegistrationDate());
-        assertEquals("Новый Продавец", sellerCaptor.getValue().getName());
+        ArgumentCaptor<Seller> captor = ArgumentCaptor.forClass(Seller.class);
+        verify(sellerRepository).save(captor.capture());
+        assertNotNull(captor.getValue().getRegistrationDate());
+        assertEquals("Новый Продавец", captor.getValue().getName());
     }
 
     @Test
     void getSellerById_WhenFound_ShouldReturnDTO() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-        seller.setName("Тестовый");
+        Seller seller = TestDataFactory.seller("Тестовый");
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
 
         SellerDTO result = sellerService.getSellerById(1L);
@@ -72,10 +70,15 @@ class SellerServiceTest {
 
     @Test
     void getSellers_ShouldReturnPageOfDTOs() {
-        Seller seller = new Seller();
-        seller.setId(1L);
-        Page<Seller> sellerPage = new PageImpl<>(Collections.singletonList(seller));
-        when(sellerRepository.findAll(any(PageRequest.class))).thenReturn(sellerPage);
+        SellerCountProjection projection = mock(SellerCountProjection.class);
+        when(projection.getId()).thenReturn(1L);
+        when(projection.getName()).thenReturn("Тестовый");
+        when(projection.getContactInfo()).thenReturn(null);
+        when(projection.getRegistrationDate()).thenReturn(LocalDateTime.now());
+        when(projection.getTransactionsCount()).thenReturn(0L);
+
+        Page<SellerCountProjection> projPage = new PageImpl<>(Collections.singletonList(projection));
+        when(sellerRepository.findAllWithTransactionCount(any(PageRequest.class))).thenReturn(projPage);
 
         Page<SellerShortDTO> result = sellerService.getSellers(0, 10);
 
@@ -85,14 +88,8 @@ class SellerServiceTest {
 
     @Test
     void updateSeller_WhenFound_ShouldUpdateAndReturnDTO() {
-        Seller existingSeller = new Seller();
-        existingSeller.setId(1L);
-        existingSeller.setName("Старое Имя");
-
-        SellerRequest request = new SellerRequest();
-        request.setName("Новое Имя");
-        request.setContactInfo("new@info.com");
-
+        Seller existingSeller = TestDataFactory.seller("Старое Имя");
+        SellerRequest request = TestDataFactory.sellerRequest("Новое Имя", "new@info.com");
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(existingSeller));
         when(sellerRepository.save(any(Seller.class))).thenAnswer(i -> i.getArguments()[0]);
 
@@ -103,14 +100,17 @@ class SellerServiceTest {
     }
 
     @Test
-    void deleteSeller_WhenFound_ShouldCallDelete() {
-        Seller seller = new Seller();
-        seller.setId(1L);
+    void deleteSeller_WhenFound_ShouldSoftDelete() {
+        Seller seller = TestDataFactory.seller();
         when(sellerRepository.findById(1L)).thenReturn(Optional.of(seller));
+        when(sellerRepository.save(any(Seller.class))).thenAnswer(i -> i.getArguments()[0]);
 
         sellerService.deleteSeller(1L);
 
-        verify(sellerRepository, times(1)).delete(seller);
+        ArgumentCaptor<Seller> captor = ArgumentCaptor.forClass(Seller.class);
+        verify(sellerRepository, times(1)).save(captor.capture());
+        assertTrue(captor.getValue().isDeleted());
+        verify(sellerRepository, never()).delete(any());
     }
 
     @Test

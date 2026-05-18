@@ -1,12 +1,12 @@
-package com.shiftlab.crm.dto.Seller;
+package com.shiftlab.crm.dto.seller;
 
-import com.shiftlab.crm.dto.Transaction.TransactionShortDTO;
+import com.shiftlab.crm.dto.transaction.TransactionShortDTO;
 import com.shiftlab.crm.model.Seller;
+import com.shiftlab.crm.model.Transaction;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.util.Collections;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
@@ -17,8 +17,9 @@ public class SellerDTO extends SellerShortDTO {
 
     public SellerDTO(Seller seller) {
         super(seller);
-        transactions = getTransactionsCount() == 0
-                ? Collections.emptyList()
-                : seller.getTransactions().stream().map(TransactionShortDTO::new).toList();
+        List<Transaction> txList = seller.getTransactions();
+        transactions = txList != null
+                ? txList.stream().map(TransactionShortDTO::new).toList()
+                : List.of();
     }
 }

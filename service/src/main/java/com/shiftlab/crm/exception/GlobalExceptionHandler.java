@@ -5,87 +5,76 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
-import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, WebRequest request) {
-
         String validationErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-
-        String customMessage = "Ошибка валидации данных. Подробности: " + validationErrors;
-        return buildErrorResponse(ex, customMessage, HttpStatus.BAD_REQUEST, request);
+        return buildErrorResponse("Ошибка валидации данных. Подробности: " + validationErrors, HttpStatus.BAD_REQUEST, request);
     }
 
-    // Обработка NoHandlerFoundException (404 Not Found)
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<Object> handleNoHandlerFoundException(NoHandlerFoundException ex, WebRequest request) {
-        String customMessage = "Запрашиваемый ресурс по адресу '" + ex.getRequestURL() + "' не найден.";
-        return buildErrorResponse(ex, customMessage, HttpStatus.NOT_FOUND, request);
+        return buildErrorResponse("Запрашиваемый ресурс по адресу '" + ex.getRequestURL() + "' не найден.", HttpStatus.NOT_FOUND, request);
     }
 
-    // Обработка ResourceNotFoundException (404 Not Found)
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
-        return buildErrorResponse(ex, ex.getMessage(), HttpStatus.NOT_FOUND, request);
+        return buildErrorResponse(ex.getMessage(), HttpStatus.NOT_FOUND, request);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, WebRequest request) {
-        String message = "Некорректный формат запроса: " + ex.getMostSpecificCause().getMessage();
-        return buildErrorResponse(ex, message, HttpStatus.BAD_REQUEST, request);
+        return buildErrorResponse("Некорректный формат запроса: " + ex.getMostSpecificCause().getMessage(), HttpStatus.BAD_REQUEST, request);
     }
 
-    // Обработка некорректных параметров (400 Bad Request)
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Object> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex, WebRequest request) {
-        String customMessage = String.format(
+        String message = String.format(
                 "Неверный формат аргумента '%s'. Требуется тип '%s', получено значение '%s'.",
                 ex.getName(),
                 ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "неизвестный",
                 ex.getValue()
         );
-        return buildErrorResponse(ex, customMessage, HttpStatus.BAD_REQUEST, request);
+        return buildErrorResponse(message, HttpStatus.BAD_REQUEST, request);
     }
 
-    // Обработка некорректных аргументов (400 Bad Request)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
-        return buildErrorResponse(ex, ex.getMessage(), HttpStatus.BAD_REQUEST, request);
+        return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, request);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Object> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
-        return buildErrorResponse(ex, "Ошибка целостности данных", HttpStatus.CONFLICT, request);
+        return buildErrorResponse("Ошибка целостности данных", HttpStatus.CONFLICT, request);
     }
 
-    // Обработка всех остальных исключений (500 Internal Server Error)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGlobalException(Exception ex, WebRequest request) {
-        return buildErrorResponse(ex, "Произошла внутренняя ошибка сервера", HttpStatus.INTERNAL_SERVER_ERROR, request);
+        return buildErrorResponse("Произошла внутренняя ошибка сервера", HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 
-    private ResponseEntity<Object> buildErrorResponse(Exception ex, String message, HttpStatus status, WebRequest request) {
+    private ResponseEntity<Object> buildErrorResponse(String message, HttpStatus status, WebRequest request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", LocalDateTime.now());
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
         body.put("message", message);
         body.put("path", request.getDescription(false).replace("uri=", ""));
-
         return new ResponseEntity<>(body, status);
     }
 }
